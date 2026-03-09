@@ -5,7 +5,7 @@
 int countColumns(char* str)
 {
     int countCol = 1;
-    for (int i = 0; str[i] != '\0'; i++) {
+    for (int i = 0; str[i] != '\0' && str[i] != '\n'; i++) {
         if (str[i] == ',') {
             countCol++;
         }
@@ -51,7 +51,12 @@ int oneCell(FILE* out, int* maxColLen, char* str, int start, int countCol)
         cellLen++;
     }
 
-    char* cell = (char*)calloc(cellLen + 1, sizeof(char));
+    char* cell = (char*)malloc((cellLen + 1) * sizeof(char));
+    if (cell == NULL) {
+        printf("Ошибка: не удалось выделить память для ячейки\n");
+        return start;
+    }
+
     for (int k = 0; k < cellLen; k++) {
         cell[k] = str[start + k];
     }
@@ -59,16 +64,21 @@ int oneCell(FILE* out, int* maxColLen, char* str, int start, int countCol)
 
     int cellIsNumber = 1;
     int dotCounter = 0;
-    for (int j = 0; j < cellLen; j++) {
-        if (j != 0 && cell[j] == '-') {
-            cellIsNumber = 0;
-        } else if (cell[j] == '.') {
-            dotCounter++;
-            if (dotCounter > 1) {
+
+    if (cellLen == 0) {
+        cellIsNumber = 0;
+    } else {
+        for (int j = 0; j < cellLen; j++) {
+            if (j != 0 && cell[j] == '-') {
+                cellIsNumber = 0;
+            } else if (cell[j] == '.') {
+                dotCounter++;
+                if (dotCounter > 1) {
+                    cellIsNumber = 0;
+                }
+            } else if (cell[j] < '0' || cell[j] > '9') {
                 cellIsNumber = 0;
             }
-        } else if (cell[j] < '0' || cell[j] > '9') {
-            cellIsNumber = 0;
         }
     }
 
@@ -82,26 +92,60 @@ int oneCell(FILE* out, int* maxColLen, char* str, int start, int countCol)
     return cellLen + start;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+    char* inputFileName = "input.csv"; // значение по умолчанию
 
-    FILE* iFile = fopen("input.csv", "r");
+    // если передан аргумент, используем его
+    if (argc > 1) {
+        inputFileName = argv[1];
+    }
+
+    // теперь открываем переданный файл
+    FILE* iFile = fopen(inputFileName, "r");
+    if (iFile == NULL) {
+        printf("Ошибка: не удалось открыть %s\n", inputFileName);
+        return 1;
+    }
     FILE* oFile = fopen("output.txt", "w");
+    if (oFile == NULL) {
+        fclose(iFile);
+        return 1;
+    }
 
     fseek(iFile, 0, SEEK_END);
     int size = ftell(iFile);
+    if (size <= 0) {
+        printf("Ошибка: файл пустой или поврежден\n");
+        fclose(iFile);
+        fclose(oFile);
+        return 1;
+    }
     fseek(iFile, 0, SEEK_SET);
 
     char* buffer = (char*)malloc(sizeof(char) * size);
+    if (buffer == NULL) {
+        printf("Ошибка: не удалось выделить память для буфера\n");
+        fclose(iFile);
+        fclose(oFile);
+        return 1;
+    }
 
     fgets(buffer, size, iFile);
     int countCol = countColumns(buffer);
 
     int* maxColLen = (int*)calloc(countCol, sizeof(int));
+    if (maxColLen == NULL) {
+        printf("Ошибка: не удалось выделить память\n");
+        free(buffer);
+        fclose(iFile);
+        fclose(oFile);
+        return 1;
+    }
 
     updateMax(buffer, maxColLen);
 
-    while (fgets(buffer, size, iFile)) {
+    while (fgets(buffer, size, iFile) != NULL) {
         updateMax(buffer, maxColLen);
     }
 
@@ -123,6 +167,15 @@ int main()
 
         int cellLength = currentPosition - cellStart;
         char* cellContent = (char*)malloc(cellLength + 1);
+        if (cellContent == NULL) {
+            printf("Ошибка: не удалось выделить память\n");
+            free(buffer);
+            free(maxColLen);
+            fclose(iFile);
+            fclose(oFile);
+            return 1;
+        }
+
         for (int charIndex = 0; charIndex < cellLength; charIndex++) {
             cellContent[charIndex] = buffer[cellStart + charIndex];
         }
