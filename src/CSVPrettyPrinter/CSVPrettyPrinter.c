@@ -117,14 +117,14 @@ int csvPrinterMain(int argc, char* argv[])
     }
 
     fseek(iFile, 0, SEEK_END);
-    long size_long = ftell(iFile);
-    if (size_long <= 0) {
+    long sizeLong = ftell(iFile);
+    if (sizeLong <= 0) {
         printf("Ошибка: файл пустой или поврежден\n");
         fclose(iFile);
         fclose(oFile);
         return 1;
     }
-    int size = (int)size_long;
+    int size = (int)sizeLong;
     fseek(iFile, 0, SEEK_SET);
 
     char* buffer = (char*)malloc(sizeof(char) * (size + 1));
