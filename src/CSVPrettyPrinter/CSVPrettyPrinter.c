@@ -1,3 +1,4 @@
+#include "CSVPrettyPrinter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +6,7 @@
 int countColumns(char* str)
 {
     int countCol = 1;
-    for (int i = 0; str[i] != '\0' && str[i] != '\n'; i++) {
+    for (int i = 0; str[i] != '\0' && str[i] != '\n' && str[i] != '\r'; i++) {
         if (str[i] == ',') {
             countCol++;
         }
@@ -17,9 +18,10 @@ void updateMax(char* str, int* maxColSize)
 {
     int index = 0;
     int numberCol = 0;
-    while (str[index] != '\0' && str[index] != '\n') {
+    str[strcspn(str, "\r\n")] = '\0';
+    while (str[index] != '\0') {
         int count = 0;
-        while (str[index] != '\0' && str[index] != '\n' && str[index] != ',') {
+        while (str[index] != '\0' && str[index] != ',') {
             count++;
             index++;
         }
@@ -44,12 +46,13 @@ void separatorPrint(FILE* out, int* maxColLen, int countCol, char symbol)
     fprintf(out, "+\n");
 }
 
-int oneCell(FILE* out, int* maxColLen, char* str, int start, int countCol)
+int oneCell(FILE* out, int* maxColLen, char* str, int start, int colIndex)
 {
-    int cellLen = 0;
-    for (int i = start; str[i] != '\0' && str[i] != '\n' && str[i] != ','; i++) {
-        cellLen++;
+    int i = start;
+    while (str[i] != '\0' && str[i] != '\n' && str[i] != '\r' && str[i] != ',') {
+        i++;
     }
+    int cellLen = i - start;
 
     char* cell = (char*)malloc((cellLen + 1) * sizeof(char));
     if (cell == NULL) {
@@ -69,8 +72,8 @@ int oneCell(FILE* out, int* maxColLen, char* str, int start, int countCol)
         cellIsNumber = 0;
     } else {
         for (int j = 0; j < cellLen; j++) {
-            if (j != 0 && cell[j] == '-') {
-                cellIsNumber = 0;
+            if (j == 0 && cell[j] == '-') {
+                continue;
             } else if (cell[j] == '.') {
                 dotCounter++;
                 if (dotCounter > 1) {
@@ -83,16 +86,16 @@ int oneCell(FILE* out, int* maxColLen, char* str, int start, int countCol)
     }
 
     if (cellIsNumber == 1) {
-        fprintf(out, "| %*s ", maxColLen[countCol], cell);
+        fprintf(out, "| %*s ", maxColLen[colIndex], cell);
     } else {
-        fprintf(out, "| %-*s ", maxColLen[countCol], cell);
+        fprintf(out, "| %-*s ", maxColLen[colIndex], cell);
     }
 
     free(cell);
-    return cellLen + start;
+    return i;
 }
 
-int main(int argc, char* argv[])
+int csvPrinterMain(int argc, char* argv[])
 {
     char* inputFileName = "input.csv"; // значение по умолчанию
 
@@ -123,7 +126,7 @@ int main(int argc, char* argv[])
     }
     fseek(iFile, 0, SEEK_SET);
 
-    char* buffer = (char*)malloc(sizeof(char) * size);
+    char* buffer = (char*)malloc(sizeof(char) * (size + 1));
     if (buffer == NULL) {
         printf("Ошибка: не удалось выделить память для буфера\n");
         fclose(iFile);
@@ -152,7 +155,7 @@ int main(int argc, char* argv[])
     // вот тут заголовок
     fseek(iFile, 0, SEEK_SET);
     fgets(buffer, size, iFile);
-    buffer[strcspn(buffer, "\n")] = '\0';
+    buffer[strcspn(buffer, "\r\n")] = '\0';
 
     separatorPrint(oFile, maxColLen, countCol, '=');
 
@@ -161,7 +164,7 @@ int main(int argc, char* argv[])
         int cellStart = currentPosition;
 
         // конец ячейки
-        while (buffer[currentPosition] != '\0' && buffer[currentPosition] != ',' && buffer[currentPosition] != '\n') {
+        while (buffer[currentPosition] != '\0' && buffer[currentPosition] != ',' && buffer[currentPosition] != '\n' && buffer[currentPosition] != '\r') {
             currentPosition++;
         }
 
@@ -194,6 +197,7 @@ int main(int argc, char* argv[])
 
     // другие ячейки
     while (fgets(buffer, size, iFile)) {
+        buffer[strcspn(buffer, "\r\n")] = '\0';
 
         currentPosition = 0;
         for (int columnIndex = 0; columnIndex < countCol; columnIndex++) {
