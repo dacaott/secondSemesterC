@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int countColumns(char* str)
+int countColumns(const char* str)
 {
     int countCol = 1;
     for (int i = 0; str[i] != '\0' && str[i] != '\n' && str[i] != '\r'; i++) {
@@ -35,7 +35,7 @@ void updateMax(char* str, int* maxColSize)
     }
 }
 
-void separatorPrint(FILE* out, int* maxColLen, int countCol, char symbol)
+void separatorPrint(FILE* out, const int* maxColLen, int countCol, char symbol)
 {
     for (int i = 0; i < countCol; i++) {
         fprintf(out, "+");
@@ -46,7 +46,7 @@ void separatorPrint(FILE* out, int* maxColLen, int countCol, char symbol)
     fprintf(out, "+\n");
 }
 
-int oneCell(FILE* out, int* maxColLen, char* str, int start, int colIndex)
+int oneCell(FILE* out, const int* maxColLen, const char* str, int start, int colIndex)
 {
     int i = start;
     while (str[i] != '\0' && str[i] != '\n' && str[i] != '\r' && str[i] != ',') {
@@ -117,7 +117,7 @@ int csvPrinterMain(int argc, char* argv[])
     }
 
     fseek(iFile, 0, SEEK_END);
-    int size = ftell(iFile);
+    long size = ftell(iFile);
     if (size <= 0) {
         printf("Ошибка: файл пустой или поврежден\n");
         fclose(iFile);

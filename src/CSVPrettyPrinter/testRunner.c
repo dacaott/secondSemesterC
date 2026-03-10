@@ -7,7 +7,7 @@
 
 void trimTrailingWhitespace(char* str)
 {
-    int len = strlen(str);
+    size_t len = strlen(str);
     while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\t' || str[len - 1] == '\n' || str[len - 1] == '\r')) {
         str[len - 1] = '\0';
         len--;
@@ -37,8 +37,10 @@ int areFilesEqual(char* file1, char* file2)
     char* result2 = fgets(line2, MAX_LINE, f2);
 
     while (result1 != NULL && result2 != NULL) {
-        strcpy(trimmed1, line1);
-        strcpy(trimmed2, line2);
+        strncpy(trimmed1, line1, MAX_LINE - 1);
+        trimmed1[MAX_LINE - 1] = '\0';
+        strncpy(trimmed2, line2, MAX_LINE - 1);
+        trimmed2[MAX_LINE - 1] = '\0';
         trimTrailingWhitespace(trimmed1);
         trimTrailingWhitespace(trimmed2);
 
