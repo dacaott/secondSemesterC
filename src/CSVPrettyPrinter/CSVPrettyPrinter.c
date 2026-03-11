@@ -125,6 +125,7 @@ int csvPrinterMain(int argc, char* argv[])
         return 1;
     }
     int size = (int)sizeLong;
+    size++;
     fseek(iFile, 0, SEEK_SET);
 
     char* buffer = (char*)malloc(sizeof(char) * (size + 1));
