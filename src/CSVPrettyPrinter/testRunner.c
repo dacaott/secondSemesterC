@@ -70,15 +70,9 @@ int areFilesEqual(char* file1, char* file2)
     return 1;
 }
 
-void runTest(char* testName)
+void runTest(char* inputFile, char* expectedFile)
 {
-    printf("\n Тест %s \n", testName);
-
-    char inputFile[100];
-    char expectedFile[100];
-
-    sprintf(inputFile, "%sTestInput.csv", testName);
-    sprintf(expectedFile, "%sTestOutput.txt", testName);
+    printf("\n Запуск теста для файла: %s \n", inputFile);
 
     char* argv[3];
     argv[0] = "csvPrinter";
@@ -98,10 +92,10 @@ int main()
 {
     printf("Запуск тестов...\n");
 
-    runTest("1");
-    runTest("2");
-    runTest("3");
-    runTest("4");
+    runTest("1TestInput.csv", "1TestOutput.txt");
+    runTest("2TestInput.csv", "2TestOutput.txt");
+    runTest("3TestInput.csv", "3TestOutput.txt");
+    runTest("4TestInput.csv", "4TestOutput.txt");
 
     printf("\nТесты завершены.\n");
 
