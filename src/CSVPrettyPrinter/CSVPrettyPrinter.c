@@ -14,11 +14,16 @@ int countColumns(const char* str)
     return countCol;
 }
 
+void changeCRLF(char* str)
+{
+    str[strcspn(str, "\r\n")] = '\0';
+}
+
 void updateMax(char* str, int* maxColSize)
 {
     int index = 0;
     int numberCol = 0;
-    str[strcspn(str, "\r\n")] = '\0';
+    changeCRLF(str);
     while (str[index] != '\0') {
         int count = 0;
         while (str[index] != '\0' && str[index] != ',') {
@@ -39,6 +44,7 @@ void separatorPrint(FILE* out, const int* maxColLen, int countCol, char symbol)
 {
     for (int i = 0; i < countCol; i++) {
         fprintf(out, "+");
+        // +2 добавляется для учета созданных отступов (по одному пробелу) слева и справа от текста ячейки
         for (int j = 0; j < maxColLen[i] + 2; j++) {
             fprintf(out, "%c", symbol);
         }
@@ -46,25 +52,32 @@ void separatorPrint(FILE* out, const int* maxColLen, int countCol, char symbol)
     fprintf(out, "+\n");
 }
 
-int oneCell(FILE* out, const int* maxColLen, const char* str, int start, int colIndex)
+int isEnd(const char* str, int i)
+{
+    if (str[i] == '\0')
+        return 1;
+    if (str[i] == '\n')
+        return 1;
+    if (str[i] == '\r')
+        return 1;
+    if (str[i] == ',')
+        return 1;
+    return 0;
+}
+
+int findCellLen(const char* str, int start)
 {
     int i = start;
-    while (str[i] != '\0' && str[i] != '\n' && str[i] != '\r' && str[i] != ',') {
+    // Пока НЕ конец ячейки — идём дальше
+    while (!isEnd(str, i)) {
         i++;
     }
     int cellLen = i - start;
+    return cellLen;
+}
 
-    char* cell = (char*)malloc((cellLen + 1) * sizeof(char));
-    if (cell == NULL) {
-        printf("Ошибка: не удалось выделить память для ячейки\n");
-        return start;
-    }
-
-    for (int k = 0; k < cellLen; k++) {
-        cell[k] = str[start + k];
-    }
-    cell[cellLen] = '\0';
-
+int isCellNumber(char* cell, int cellLen)
+{
     int cellIsNumber = 1;
     int dotCounter = 0;
 
@@ -84,18 +97,34 @@ int oneCell(FILE* out, const int* maxColLen, const char* str, int start, int col
             }
         }
     }
+    return cellIsNumber;
+}
 
-    if (cellIsNumber == 1) {
+int printOneCell(FILE* out, const int* maxColLen, const char* str, int start, int colIndex)
+{
+    int cellLen = findCellLen(str, start);
+    char* cell = (char*)calloc(cellLen + 1, 1);
+    if (cell == NULL) {
+        printf("Ошибка: не удалось выделить память для ячейки\n");
+        return start;
+    }
+
+    for (int k = 0; k < cellLen; k++) {
+        cell[k] = str[start + k];
+    }
+    int isNumber = isCellNumber(cell, cellLen);
+
+    if (isNumber == 1) {
         fprintf(out, "| %*s ", maxColLen[colIndex], cell);
     } else {
         fprintf(out, "| %-*s ", maxColLen[colIndex], cell);
     }
 
     free(cell);
-    return i;
+    return cellLen + start;
 }
 
-int csvPrinterMain(int argc, char* argv[])
+FILE* openInputFile(int argc, char* argv[])
 {
     char* inputFileName = "input.csv"; // значение по умолчанию
 
@@ -104,121 +133,170 @@ int csvPrinterMain(int argc, char* argv[])
         inputFileName = argv[1];
     }
 
-    // теперь открываем переданный файл
-    FILE* iFile = fopen(inputFileName, "r");
-    if (iFile == NULL) {
-        printf("Ошибка: не удалось открыть %s\n", inputFileName);
-        return 1;
-    }
-    FILE* oFile = fopen("output.txt", "w");
-    if (oFile == NULL) {
-        fclose(iFile);
-        return 1;
-    }
+    FILE* inputFile = fopen(inputFileName, "r");
+    return inputFile;
+}
 
-    fseek(iFile, 0, SEEK_END);
-    long sizeLong = ftell(iFile);
+int getFileSize(FILE* inputFile)
+{
+    fseek(inputFile, 0, SEEK_END);
+    long sizeLong = ftell(inputFile);
     if (sizeLong <= 0) {
-        printf("Ошибка: файл пустой или поврежден\n");
-        fclose(iFile);
-        fclose(oFile);
-        return 1;
+        return 0;
     }
     int size = (int)sizeLong;
     size++;
-    fseek(iFile, 0, SEEK_SET);
+    fseek(inputFile, 0, SEEK_SET);
+    return size;
+}
 
-    char* buffer = (char*)malloc(sizeof(char) * (size + 1));
+int getColLens(FILE* inputFile, int size, int** maxColLen, int* countCol)
+{
+    char* buffer = (char*)malloc(sizeof(char) * size);
     if (buffer == NULL) {
-        printf("Ошибка: не удалось выделить память для буфера\n");
-        fclose(iFile);
-        fclose(oFile);
         return 1;
     }
 
-    fgets(buffer, size, iFile);
-    int countCol = countColumns(buffer);
+    fgets(buffer, size, inputFile);
+    *countCol = countColumns(buffer);
 
-    int* maxColLen = (int*)calloc(countCol, sizeof(int));
-    if (maxColLen == NULL) {
-        printf("Ошибка: не удалось выделить память\n");
+    *maxColLen = (int*)calloc(*countCol, sizeof(int));
+    if (*maxColLen == NULL) {
         free(buffer);
-        fclose(iFile);
-        fclose(oFile);
         return 1;
     }
 
-    updateMax(buffer, maxColLen);
+    updateMax(buffer, *maxColLen);
 
-    while (fgets(buffer, size, iFile) != NULL) {
-        updateMax(buffer, maxColLen);
+    while (fgets(buffer, size, inputFile) != NULL) {
+        updateMax(buffer, *maxColLen);
     }
 
-    // вот тут заголовок
-    fseek(iFile, 0, SEEK_SET);
-    fgets(buffer, size, iFile);
-    buffer[strcspn(buffer, "\r\n")] = '\0';
+    fseek(inputFile, 0, SEEK_SET);
+    free(buffer);
+    return 0;
+}
 
-    separatorPrint(oFile, maxColLen, countCol, '=');
+int printHeader(FILE* outputFile, FILE* inputFile, int size, int* maxColLen, int countCol)
+{
+    char* buffer = (char*)malloc(sizeof(char) * (size + 1));
+    fgets(buffer, size, inputFile);
+    changeCRLF(buffer);
+
+    separatorPrint(outputFile, maxColLen, countCol, '=');
 
     int currentPosition = 0;
     for (int columnIndex = 0; columnIndex < countCol; columnIndex++) {
         int cellStart = currentPosition;
 
-        // конец ячейки
-        while (buffer[currentPosition] != '\0' && buffer[currentPosition] != ',' && buffer[currentPosition] != '\n' && buffer[currentPosition] != '\r') {
+        // Пока НЕ конец ячейки
+        while (!isEnd(buffer, currentPosition)) {
             currentPosition++;
         }
 
         int cellLength = currentPosition - cellStart;
-        char* cellContent = (char*)malloc(cellLength + 1);
+        char* cellContent = (char*)calloc(cellLength + 1, 1);
         if (cellContent == NULL) {
             printf("Ошибка: не удалось выделить память\n");
             free(buffer);
-            free(maxColLen);
-            fclose(iFile);
-            fclose(oFile);
             return 1;
         }
 
         for (int charIndex = 0; charIndex < cellLength; charIndex++) {
             cellContent[charIndex] = buffer[cellStart + charIndex];
         }
-        cellContent[cellLength] = '\0';
 
-        fprintf(oFile, "| %-*s ", maxColLen[columnIndex], cellContent);
+        fprintf(outputFile, "| %-*s ", maxColLen[columnIndex], cellContent);
         free(cellContent);
 
         if (buffer[currentPosition] == ',') {
             currentPosition++;
         }
     }
-    fprintf(oFile, "|\n");
+    fprintf(outputFile, "|\n");
 
-    separatorPrint(oFile, maxColLen, countCol, '=');
+    separatorPrint(outputFile, maxColLen, countCol, '=');
 
-    // другие ячейки
-    while (fgets(buffer, size, iFile)) {
-        buffer[strcspn(buffer, "\r\n")] = '\0';
+    free(buffer);
+    return 0;
+}
 
-        currentPosition = 0;
+int printCells(FILE* outputFile, FILE* inputFile, int size, int* maxColLen, int countCol)
+{
+    char* buffer = (char*)malloc(sizeof(char) * (size + 1));
+    while (fgets(buffer, size, inputFile)) {
+        changeCRLF(buffer);
+
+        int currentPosition = 0;
         for (int columnIndex = 0; columnIndex < countCol; columnIndex++) {
-            currentPosition = oneCell(oFile, maxColLen, buffer, currentPosition, columnIndex);
+            currentPosition = printOneCell(outputFile, maxColLen, buffer, currentPosition, columnIndex);
 
             if (buffer[currentPosition] == ',') {
                 currentPosition++;
             }
         }
-        fprintf(oFile, "|\n");
+        fprintf(outputFile, "|\n");
 
-        separatorPrint(oFile, maxColLen, countCol, '-');
+        separatorPrint(outputFile, maxColLen, countCol, '-');
     }
 
     free(buffer);
-    free(maxColLen);
+    return 0;
+}
 
-    fclose(iFile);
-    fclose(oFile);
+int csvPrinterMain(int argc, char* argv[])
+{
+    FILE* inputFile = openInputFile(argc, argv);
+    if (inputFile == NULL) {
+        printf("Ошибка: не удалось открыть файл\n");
+        return 1;
+    }
+
+    FILE* outputFile = fopen("output.txt", "w");
+    if (outputFile == NULL) {
+        fclose(inputFile);
+        return 1;
+    }
+
+    int size = getFileSize(inputFile);
+    if (size <= 0) {
+        printf("Ошибка: файл пустой или поврежден\n");
+        fclose(inputFile);
+        fclose(outputFile);
+        return 1;
+    }
+
+    int* maxColLen;
+    int countCol;
+    int error = getColLens(inputFile, size, &maxColLen, &countCol);
+    if (error == 1) {
+        printf("Ошибка: не удалось выделить память\n");
+        fclose(inputFile);
+        fclose(outputFile);
+        return 1;
+    }
+
+    // Печать заголовка
+    error = printHeader(outputFile, inputFile, size, maxColLen, countCol);
+    if (error != 0) {
+        free(maxColLen);
+        fclose(inputFile);
+        fclose(outputFile);
+        return 1;
+    }
+
+    // Печать остальных ячеек
+    error = printCells(outputFile, inputFile, size, maxColLen, countCol);
+    if (error != 0) {
+        free(maxColLen);
+        fclose(inputFile);
+        fclose(outputFile);
+        return 1;
+    }
+
+    free(maxColLen);
+    fclose(inputFile);
+    fclose(outputFile);
 
     return 0;
 }
