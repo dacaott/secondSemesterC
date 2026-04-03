@@ -76,7 +76,7 @@ int findCellLen(const char* str, int start)
     return cellLen;
 }
 
-int isCellNumber(char* cell, int cellLen)
+int isCellNumber(const char* cell, int cellLen)
 {
     int cellIsNumber = 1;
     int dotCounter = 0;
