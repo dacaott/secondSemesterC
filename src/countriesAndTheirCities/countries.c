@@ -1,9 +1,10 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "heap.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define UNOWNED -1
-#define INVALID_COST -1
+#define UNOWNED (-1)
+#define INVALID_COST (-1)
 
 int createGraph(FILE* inputFile, int*** graph, int* citiesAmount, int* waysAmount)
 {
@@ -174,7 +175,7 @@ int buildCountries(int** graph, int citiesAmount, int capitalAmount, int* capita
     return 0;
 }
 
-int printCountries(int* ownersOfCities, int citiesAmount, int capitalAmount, int* capitalCities, const char* outputFilePath)
+int printCountries(const int* ownersOfCities, int citiesAmount, int capitalAmount, int* capitalCities, const char* outputFilePath)
 {
     FILE* outputFile = fopen(outputFilePath, "w");
     if (outputFile == NULL) {
