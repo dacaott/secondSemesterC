@@ -1,0 +1,1 @@
+int solution(const char* inputFilePath, const char* outputFilePath);
