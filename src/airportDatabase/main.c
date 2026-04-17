@@ -21,37 +21,37 @@ int main(int argc, char* argv[])
     fclose(iFile);
 
     char command[1000];
-    bool Run = true;
+    bool run = true;
 
-    while (Run) {
+    while (run) {
         fputs("Enter command (add/find/delete/save/quit): ", stdout);
         fgets(command, 1000, stdin);
 
         if (strcmp(command, "quit\n") == 0) {
-            Run = false;
+            run = false;
         } else {
             char cmd[10];
-            char cmd_value[1000] = "";
+            char cmdValue[1000] = "";
 
-            sscanf(command, "%s %[^\n]", cmd, cmd_value);
+            sscanf(command, "%s %[^\n]", cmd, cmdValue);
 
             if (strcmp(cmd, "add") == 0) {
                 char key[4];
                 char value[1000];
-                if (sscanf(cmd_value, "%[^:]:%[^\n]", key, value) == 2) {
+                if (sscanf(cmdValue, "%[^:]:%[^\n]", key, value) == 2) {
                     root = insert(root, key, value);
                 } else {
                     printf("Invalid add format. Use KEY:Value\n");
                 }
             } else if (strcmp(cmd, "find") == 0) {
-                struct Node* result = find(root, cmd_value);
+                struct Node* result = find(root, cmdValue);
                 if (result != NULL) {
                     printf("%s -> %s\n", result->key, result->value);
                 } else {
                     printf("IATA code not found in database\n");
                 }
             } else if (strcmp(cmd, "delete") == 0) {
-                root = deleteNode(root, cmd_value);
+                root = deleteNode(root, cmdValue);
             } else if (strcmp(cmd, "save") == 0) {
                 FILE* oFile = fopen(argv[1], "w");
                 if (oFile == NULL) {

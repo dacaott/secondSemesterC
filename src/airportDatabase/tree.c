@@ -30,7 +30,7 @@ static struct Node* createNode(char key[4], char* value)
     return node;
 }
 
-static int max_int(int a, int b) { return (a > b) ? a : b; }
+static int maxInt(int a, int b) { return (a > b) ? a : b; }
 
 static int getBalanceFactor(struct Node* n)
 {
@@ -42,13 +42,13 @@ static int getBalanceFactor(struct Node* n)
 static struct Node* rightRotate(struct Node* y)
 {
     struct Node* x = y->left;
-    struct Node* T2 = x->right;
+    struct Node* t2 = x->right;
 
     x->right = y;
-    y->left = T2;
+    y->left = t2;
 
-    y->height = max_int(getHeight(y->left), getHeight(y->right)) + 1;
-    x->height = max_int(getHeight(x->left), getHeight(x->right)) + 1;
+    y->height = maxInt(getHeight(y->left), getHeight(y->right)) + 1;
+    x->height = maxInt(getHeight(x->left), getHeight(x->right)) + 1;
 
     return x;
 }
@@ -61,8 +61,8 @@ static struct Node* leftRotate(struct Node* x)
     y->left = x;
     x->right = T2;
 
-    x->height = max_int(getHeight(x->left), getHeight(x->right)) + 1;
-    y->height = max_int(getHeight(y->left), getHeight(y->right)) + 1;
+    x->height = maxInt(getHeight(x->left), getHeight(x->right)) + 1;
+    y->height = maxInt(getHeight(y->left), getHeight(y->right)) + 1;
 
     return y;
 }
@@ -79,7 +79,7 @@ struct Node* insert(struct Node* node, char key[4], char* value)
     else
         return node;
 
-    node->height = 1 + max_int(getHeight(node->left), getHeight(node->right));
+    node->height = 1 + maxInt(getHeight(node->left), getHeight(node->right));
     int balance = getBalanceFactor(node);
 
     if (balance > 1 && strcmp(key, node->left->key) < 0)
@@ -152,7 +152,7 @@ struct Node* deleteNode(struct Node* root, char key[4])
     if (root == NULL)
         return root;
 
-    root->height = 1 + max_int(getHeight(root->left), getHeight(root->right));
+    root->height = 1 + maxInt(getHeight(root->left), getHeight(root->right));
     int balance = getBalanceFactor(root);
 
     if (balance > 1 && getBalanceFactor(root->left) >= 0)

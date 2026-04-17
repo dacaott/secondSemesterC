@@ -51,9 +51,9 @@ int main()
     root = deleteNode(root, "JFK");
 
     result = find(root, "JFK");
-    struct Node* check_mia = find(root, "MIA");
+    struct Node* checkMia = find(root, "MIA");
 
-    if (result == NULL && check_mia != NULL && strcmp(check_mia->value, "Miami") == 0) {
+    if (result == NULL && checkMia != NULL && strcmp(checkMia->value, "Miami") == 0) {
         printf("OK\n");
     } else {
         printf("FAIL\n");
